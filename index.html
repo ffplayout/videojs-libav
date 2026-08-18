@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A Video.js 10 and libav.js playback pipeline demo." />
+    <link rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml" />
+    <title>Universal Playback Lab · Video.js + libav.js</title>
+  </head>
+  <body>
+    <main class="site-shell">
+      <header class="hero">
+        <p class="eyebrow">Video.js 10 · libav.js</p>
+        <h1>Universal Playback Lab</h1>
+        <p class="lede">
+          A browser-first player that prefers native media, then uses libav.js demuxing and an optional patent-free
+          software decoder.
+        </p>
+        <div class="capabilities" aria-label="Runtime capabilities">
+          <span id="webcodecs-capability">Checking WebCodecs…</span>
+          <span id="worklet-capability">Checking AudioWorklet…</span>
+          <span>Canvas renderer</span>
+        </div>
+      </header>
+
+      <section class="player-panel" aria-labelledby="player-heading">
+        <div class="section-heading">
+          <div>
+            <p class="kicker">Now playing</p>
+            <h2 id="player-heading">Loading fixture…</h2>
+          </div>
+          <p id="status" class="status" role="status">Preparing playback pipeline…</p>
+        </div>
+        <div id="mount" class="media-stage"></div>
+        <div class="telemetry" aria-label="Playback information">
+          <div><span>Route</span><strong id="route">—</strong></div>
+          <div><span>Duration</span><strong id="duration">—</strong></div>
+          <div><span>Position</span><strong id="position">—</strong></div>
+          <div><span>Streams</span><strong id="streams">—</strong></div>
+        </div>
+        <label id="audio-track-control" class="audio-track-control" hidden>
+          Audio track
+          <select id="audio-track"></select>
+        </label>
+      </section>
+
+      <section class="fixture-section" aria-labelledby="fixtures-heading">
+        <div class="section-heading compact">
+          <div>
+            <p class="kicker">Fixtures</p>
+            <h2 id="fixtures-heading">Exercise each playback route</h2>
+          </div>
+          <label class="file-picker"
+            >Open a local file <input id="file" type="file" accept="video/*,audio/*,.mkv,.webm,.mp4,.mov,.ogv"
+          /></label>
+        </div>
+        <div id="fixtures" class="fixture-grid"></div>
+      </section>
+
+      <section class="info-grid" aria-label="How this demo works">
+        <article>
+          <p class="kicker">01</p>
+          <h2>Native first</h2>
+          <p>The browser keeps control whenever its media element reports support for a source.</p>
+        </article>
+        <article>
+          <p class="kicker">02</p>
+          <h2>Worker pipeline</h2>
+          <p>libav.js demuxes off the main thread. WebCodecs is preferred before a software decoder is considered.</p>
+        </article>
+        <article>
+          <p class="kicker">03</p>
+          <h2>Patent-free fallback</h2>
+          <p>The bundled software variant handles Theora, Vorbis, Opus, FLAC, VP8, VP9, AV1, and PCM.</p>
+        </article>
+      </section>
+
+      <footer>
+        <span>MIT for the demo and package.</span>
+        <a href="%BASE_URL%libav-patentfree/NOTICE.md"
+          >Bundled libav.js assets retain their own LGPL notice and source.</a
+        >
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

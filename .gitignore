@@ -1,0 +1,31 @@
+node_modules/
+dist/
+packages/videojs-libav/node_modules/
+packages/videojs-libav/dist/
+public/libav/
+*.tsbuildinfo
+
+# Tool caches and test output
+.vite/
+.cache/
+coverage/
+
+# Logs and local package archives
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.tgz
+
+# Local configuration; keep example files versioned.
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,50 @@
+{
+  "name": "videojs-libav",
+  "version": "0.1.0",
+  "description": "libav.js/WebCodecs media element for Video.js 10",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./worker": {
+      "default": "./dist/demux-worker.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "videojs",
+    "video.js",
+    "libav.js",
+    "webcodecs",
+    "webassembly",
+    "media"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts src/demux-worker.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@videojs/html": "^10.0.0-beta.27",
+    "@videojs/media": "^10.0.0-beta.27"
+  },
+  "devDependencies": {
+    "tsdown": "^0.21.9",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

@@ -1,0 +1,9 @@
+# Generated dependencies and build output
+node_modules/
+dist/
+packages/videojs-libav/dist/
+
+# Pre-built libav.js runtime assets and binary demo media
+public/libav/
+public/libav-patentfree/
+public/media/
