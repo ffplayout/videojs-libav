@@ -15,15 +15,19 @@ This is an MVP targeting browsers with WebCodecs and AudioWorklet support.
 - If WebCodecs rejects a stream, an optional, separate libav.js software
   decoder variant is used in the same worker.
 - Packet, decoder, and frame queues use bounded backpressure.
+- HTTP sources with byte-range support are served to libav.js through its
+  asynchronous block-reader device, so the complete resource is not loaded
+  before playback starts.
 - Multiple audio streams are exposed through `audioTracks`; select one with
   `selectAudioTrack(streamIndex)`.
 
 The native path supports MP4/H.264/AAC, MKV/H.264/AAC, and MKV/VP9/Opus when
 the browser accepts the corresponding WebCodecs configuration. The optional
 software path currently targets patent-free VP8, VP9, AV1, Theora, Vorbis,
-Opus, FLAC, and PCM. Subtitle tracks, indexed seeking, and streaming input are not
-implemented yet. Seeking currently restarts the pipeline and suppresses output
-until the requested timestamp, so it is correct but not fast for long files.
+Opus, FLAC, and PCM. Subtitle tracks and adaptive/live protocols are not
+implemented yet. Seeking restarts the bounded pipeline and asks libav.js to
+seek from a preceding keyframe; when byte ranges are available, this requests
+only the corresponding source ranges rather than the entire file.
 
 ## Video.js 10 integration
 
@@ -73,9 +77,10 @@ libav-video → Demux Worker → WebCodecs decoder ───────→ Canv
                                                  master clock
 ```
 
-The worker reads at most 512 KiB per libav.js call and has a 32-chunk credit
+The worker reads at most 512 KiB per libav.js demux call and reads no more than
+1 MiB beyond an on-demand HTTP byte-range request. It has a 32-chunk credit
 window. The main thread limits the WebCodecs decode queues and retains at most
-eight unrendered `VideoFrame`s. Backpressure prevents slow decoding or rendering
+16 unrendered `VideoFrame`s. Backpressure prevents slow decoding or rendering
 from causing unbounded packet or frame accumulation.
 
 ## libav.js assets
@@ -101,6 +106,10 @@ source-distribution obligations.
 - Chromium-family browser with `VideoDecoder`, `AudioDecoder`, and
   `AudioWorklet`.
 - Same-origin media, or CORS that allows the worker to `fetch` the source.
+- For progressive large-file playback: HTTP range support. A `Range: bytes=0-0`
+  probe must return `206 Partial Content` with `Content-Range`; cross-origin
+  servers must additionally expose `Content-Range` to JavaScript. Servers
+  without this support use the full-download compatibility fallback.
 - A bundler that supports
   `new Worker(new URL(..., import.meta.url), { type: 'module' })`.
 

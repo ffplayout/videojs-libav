@@ -18,6 +18,7 @@ export type WorkerRequest =
       libavBase?: string;
       softwareDecoderBase?: string;
       selectedAudioTrack?: number;
+      startTime?: number;
     }
   | { type: 'resume'; generation: number }
   | { type: 'close'; generation: number };

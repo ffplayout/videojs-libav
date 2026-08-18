@@ -81,6 +81,8 @@ export class LibavVideoElement extends MediaAttachMixin(HTMLElement) {
   set src(value: string) {
     if (value !== this.#source) {
       this.#source = value;
+      this.#currentTime = 0;
+      this.#baseTimestamp = Number.NaN;
       void this.load();
     }
   }
@@ -205,6 +207,7 @@ export class LibavVideoElement extends MediaAttachMixin(HTMLElement) {
       libavBase: this.#libavBase,
       softwareDecoderBase: this.#softwareDecoderBase,
       selectedAudioTrack: this.#audioTrack,
+      startTime: this.#currentTime,
     });
     event(this, 'loadstart');
   }

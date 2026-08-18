@@ -15,6 +15,43 @@ type DemuxRuntime = {
 let runtime: DemuxRuntime | undefined;
 const emit = (message: WorkerResponse, transfer: Transferable[] = []) => scope.postMessage(message, transfer);
 const kindOf = (stream: any) => (stream.codec_type === 0 ? 'video' : stream.codec_type === 1 ? 'audio' : null);
+const rangeReadAhead = 1024 * 1024;
+
+/**
+ * Attach a seekable HTTP resource to libav.js without first materialising the
+ * complete file in WASM memory. `onblockread` is invoked only when the
+ * demuxer needs a byte range, and libav.js resumes the pending I/O operation
+ * when `ff_block_reader_dev_send` receives that range.
+ */
+async function openInput(libav: any, src: string, fileName: string) {
+  const probe = await fetch(src, { headers: { Range: 'bytes=0-0' } });
+  if (!probe.ok) throw new Error(`HTTP ${probe.status} while loading media`);
+  const contentRange = probe.headers.get('content-range');
+  const size = contentRange && /^bytes \d+-\d+\/(\d+)$/i.exec(contentRange)?.[1];
+
+  if (probe.status === 206 && size) {
+    const fileSize = Number(size);
+    if (!Number.isSafeInteger(fileSize) || fileSize < 1) throw new Error('Invalid HTTP Content-Range size');
+    await libav.mkblockreaderdev(fileName, fileSize);
+    libav.onblockread = (_name: string, position: number, length: number) => {
+      const end = Math.min(fileSize - 1, position + Math.max(length, rangeReadAhead) - 1);
+      return fetch(src, { headers: { Range: `bytes=${position}-${end}` } })
+        .then(async (response) => {
+          if (response.status !== 206)
+            throw new Error(`Server stopped honoring range requests (HTTP ${response.status})`);
+          return new Uint8Array(await response.arrayBuffer());
+        })
+        .then((data) => libav.ff_block_reader_dev_send(fileName, position, data));
+    };
+    return { rangeSupported: true, fileSize };
+  }
+
+  // Development servers and basic static hosts do not always implement Range.
+  // Preserve the MVP behaviour for those sources, while production servers
+  // avoid this branch by returning a 206 response above.
+  await libav.writeFile(fileName, new Uint8Array(await probe.arrayBuffer()));
+  return { rangeSupported: false, fileSize: 0 };
+}
 
 interface SoftwareDecoder {
   libav: any;
@@ -219,6 +256,7 @@ async function open(
   libavBase?: string,
   softwareDecoderBase?: string,
   selectedAudioTrack?: number,
+  startTime = 0,
 ) {
   let libav: any;
   let formatContext = 0;
@@ -228,13 +266,10 @@ async function open(
   const software: SoftwareDecoder[] = [];
   try {
     credits = 32;
-    const response = await fetch(src);
-    if (!response.ok) throw new Error(`HTTP ${response.status} while loading media`);
-    const bytes = new Uint8Array(await response.arrayBuffer());
     const demuxRuntime = await loadDemuxRuntime(libavBase);
     libav = await demuxRuntime.LibAV.LibAV({ noworker: true });
     fileName = `input-${generation}`;
-    await libav.writeFile(fileName, bytes);
+    await openInput(libav, src, fileName);
     [formatContext, streams] = await libav.ff_init_demuxer_file(fileName);
     const selected = streams.filter((stream: any) => kindOf(stream));
     const descriptors: DemuxStream[] = [];
@@ -290,6 +325,13 @@ async function open(
       ),
     );
     emit({ type: 'metadata', generation, duration, streams: descriptors });
+    if (startTime > 0) {
+      const seekStream = selected.find((stream: any) => kindOf(stream) === 'video') ?? selected[0];
+      const units = (startTime * Number(seekStream.time_base_den || 1)) / Number(seekStream.time_base_num || 1);
+      const [timestamp, timestamphi] = libav.f64toi64(units);
+      await libav.av_seek_frame(formatContext, seekStream.index, timestamp, timestamphi, libav.AVSEEK_FLAG_BACKWARD);
+      await libav.avformat_flush(formatContext);
+    }
     packet = await libav.av_packet_alloc();
     for (;;) {
       if (generation === cancelledGeneration) break;
@@ -335,7 +377,14 @@ scope.onmessage = ({ data }: MessageEvent<WorkerRequest>) => {
   if (data.type === 'open') {
     cancelledGeneration = -1;
     credits = 32;
-    void open(data.src, data.generation, data.libavBase, data.softwareDecoderBase, data.selectedAudioTrack);
+    void open(
+      data.src,
+      data.generation,
+      data.libavBase,
+      data.softwareDecoderBase,
+      data.selectedAudioTrack,
+      data.startTime,
+    );
   }
   if (data.type === 'close') {
     cancelledGeneration = data.generation;

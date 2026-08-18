@@ -14,6 +14,9 @@ scripts from a CDN.
 - libav.js demuxes in a module worker. WebCodecs is preferred for decoding;
   rejected streams use the bundled patent-free libav.js decoder variant.
   Canvas renders video and AudioWorklet provides the audio master clock.
+- HTTP sources returning `206 Partial Content` are connected to libav.js as an
+  on-demand block reader, so large media is not downloaded into WASM memory as
+  one complete file.
 - The Video.js 10 default skin supplies the seek bar, time display, volume
   control, fullscreen control, settings menu, and keyboard shortcuts.
 
@@ -45,6 +48,17 @@ FLAC, and PCM decoders; it loads only when WebCodecs rejects a stream. Its
 reproducible configuration and update procedure are documented in
 [`libav/`](libav). The deployed patent-free runtime directory also contains its
 [LGPL notice, build inputs, and pinned upstream source links](public/libav-patentfree/NOTICE.md).
+
+## Large-file hosting
+
+For progressive playback and efficient seeks, serve media with HTTP byte-range
+support (`Accept-Ranges: bytes`) and return `206 Partial Content` plus
+`Content-Range` for requests containing `Range`. The worker requests up to
+1 MiB beyond each libav.js read, so memory remains bounded while demuxing and
+decoding continue. If the server does not support ranges, the player retains a
+full-download compatibility fallback intended for the small local fixtures.
+
+For cross-origin media, CORS must allow `Range` and expose `Content-Range`.
 
 ```bash
 npm run typecheck
