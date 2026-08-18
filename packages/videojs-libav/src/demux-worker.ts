@@ -89,7 +89,7 @@ async function supportsWebCodecs(kind: 'audio' | 'video', config: AudioDecoderCo
 async function loadSoftwareDecoder(base: string) {
   const moduleUrl = new URL('libav-patentfree-player.mjs', base).href;
   const { default: variant } = await import(/* @vite-ignore */ moduleUrl);
-  variant.base = new URL('./', moduleUrl).href;
+  variant.base = new URL('./', moduleUrl).href.replace(/\/$/, '');
   // The decoder is already inside our demux worker. Disable nested pthread
   // workers so the compact variant needs only its non-threaded WASM assets.
   return variant.LibAV({ noworker: true, nothreads: true });
@@ -102,7 +102,8 @@ async function loadDemuxRuntime(base?: string) {
     import(/* @vite-ignore */ new URL('libavjs-webcodecs-bridge.mjs', assetBase).href),
   ]);
   const LibAV = libavModule.default;
-  LibAV.base = assetBase;
+  // libav.js appends its own slash while resolving the selected WASM module.
+  LibAV.base = assetBase.replace(/\/$/, '');
   runtime = { LibAV, ...bridge } as DemuxRuntime;
   return runtime;
 }

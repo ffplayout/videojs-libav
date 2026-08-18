@@ -27,7 +27,12 @@ type DemoSource = {
 
 defineLibavVideoElement();
 
-const fixtureBase = `${import.meta.env.BASE_URL}media/`;
+// Media is fetched by the demux worker. Give it an absolute page-relative URL:
+// a plain "./media/…" would otherwise be resolved relative to the emitted
+// worker in ./assets/ on GitHub Pages.
+const appBase = new URL(import.meta.env.BASE_URL, window.location.href);
+const assetUrl = (path: string) => new URL(path, appBase).href;
+const fixtureBase = assetUrl('media/');
 const fixtures: DemoSource[] = [
   {
     src: `${fixtureBase}theora-vorbis.mkv`,
@@ -195,8 +200,8 @@ function mountSource(source: DemoSource) {
   media.setAttribute('preload', 'metadata');
   media.setAttribute('disableremoteplayback', '');
   if (usesLibav) {
-    media.libavBase = new URL(`${import.meta.env.BASE_URL}libav/`, window.location.href).href;
-    media.softwareDecoderBase = new URL(`${import.meta.env.BASE_URL}libav-patentfree/`, window.location.href).href;
+    media.libavBase = assetUrl('libav/');
+    media.softwareDecoderBase = assetUrl('libav-patentfree/');
   }
   bindStatus(media, source, usesLibav);
   media.src = source.src;

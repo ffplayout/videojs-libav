@@ -4,10 +4,14 @@
   "description": "libav.js/WebCodecs media element for Video.js 10",
   "license": "MIT",
   "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
     "./worker": {
@@ -35,6 +39,7 @@
   },
   "scripts": {
     "build": "tsdown src/index.ts src/demux-worker.ts --format esm --dts",
+    "prepack": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
