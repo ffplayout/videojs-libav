@@ -212,6 +212,14 @@ export class LibavVideoElement extends MediaAttachMixin(HTMLElement) {
     event(this, 'loadstart');
   }
   async play() {
+    // The demux worker closes the bounded frame queue at EOF. Replaying must
+    // therefore create a new pipeline rather than trying to consume that
+    // closed queue again.
+    if (this.#ended) {
+      this.#currentTime = 0;
+      this.#baseTimestamp = Number.NaN;
+      await this.load();
+    }
     if (!this.#streams.length) await this.load();
     await this.#audioSink.start();
     this.#playing = true;
