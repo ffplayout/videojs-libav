@@ -44,7 +44,7 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           mkdir release
-          npm --prefix packages/videojs-libav pack --pack-destination "$PWD/release"
+          (cd packages/videojs-libav && npm pack --pack-destination "$GITHUB_WORKSPACE/release")
           ./scripts/package-corresponding-source.sh release "$RELEASE_TAG"
           (cd release && sha256sum * > SHA256SUMS)
       - name: Upload artifacts to draft release
