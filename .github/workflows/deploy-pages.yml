@@ -36,6 +36,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Prepare official WebCodecs runtime
+        run: npm run sync:libav
       - name: Verify runtime checksums
         run: sha256sum --check SOURCES.sha256
         working-directory: public/libav-patentfree
