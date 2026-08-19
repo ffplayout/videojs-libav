@@ -6,7 +6,7 @@ let cancelledGeneration = -1;
 let resume: (() => void) | undefined;
 let credits = 32;
 type DemuxRuntime = {
-  LibAV: { base: string; LibAV(options: { noworker: boolean }): Promise<any> };
+  LibAV: { base: string; LibAV(options: { noworker: boolean; nothreads?: boolean }): Promise<any> };
   audioStreamToConfig(libav: any, stream: any): Promise<AudioDecoderConfig | null>;
   videoStreamToConfig(libav: any, stream: any): Promise<VideoDecoderConfig | null>;
   packetToEncodedAudioChunk(packet: any, stream: any): EncodedAudioChunk;
@@ -86,19 +86,17 @@ async function supportsWebCodecs(kind: 'audio' | 'video', config: AudioDecoderCo
   }
 }
 
-async function loadSoftwareDecoder(base: string) {
-  const moduleUrl = new URL('libav-patentfree-player.mjs', base).href;
-  const { default: variant } = await import(/* @vite-ignore */ moduleUrl);
-  variant.base = new URL('./', moduleUrl).href.replace(/\/$/, '');
-  // The decoder is already inside our demux worker. Disable nested pthread
-  // workers so the compact variant needs only its non-threaded WASM assets.
-  return variant.LibAV({ noworker: true, nothreads: true });
-}
-
-async function loadDemuxRuntime(base?: string) {
-  const assetBase = new URL(base || './', scope.location.href).href;
+/**
+ * Load one libav.js runtime for the entire worker pipeline. When a
+ * patent-free player variant is configured, it handles both demuxing and any
+ * necessary software decode. This deliberately avoids loading a second WASM
+ * module beside the regular WebCodecs variant.
+ */
+async function loadDemuxRuntime(libavBase?: string, playerBase?: string) {
+  const assetBase = new URL(playerBase || libavBase || './', scope.location.href).href;
+  const loader = playerBase ? 'libav-patentfree-player.mjs' : 'libav-webcodecs.mjs';
   const [libavModule, bridge] = await Promise.all([
-    import(/* @vite-ignore */ new URL('libav-webcodecs.mjs', assetBase).href),
+    import(/* @vite-ignore */ new URL(loader, assetBase).href),
     import(/* @vite-ignore */ new URL('libavjs-webcodecs-bridge.mjs', assetBase).href),
   ]);
   const LibAV = libavModule.default;
@@ -138,9 +136,10 @@ function frameToVideoFrame(libav: any, frame: any) {
     [libav.AV_PIX_FMT_RGBA]: 'RGBA',
     [libav.AV_PIX_FMT_BGRA]: 'BGRA',
   };
-  const format = formats[frame.format];
+  const highBitDepth = highBitDepthYuv420[frame.format];
+  const format = formats[frame.format] ?? (highBitDepth ? 'I420' : undefined);
   if (!format) throw new Error(`Unsupported software-decoder pixel format ${frame.format}`);
-  const { data, layout } = packVideoPlanes(frame, format);
+  const { data, layout } = packVideoPlanes(frame, format, highBitDepth);
   return new VideoFrame(data, {
     format,
     codedWidth: frame.width,
@@ -150,6 +149,17 @@ function frameToVideoFrame(libav: any, frame: any) {
   });
 }
 
+// FFmpeg pixel-format IDs are ABI-stable. VP9/AV1 10- and 12-bit 4:2:0 frames
+// use 16-bit little- or big-endian samples. Canvas cannot draw them directly,
+// so they are converted to 8-bit I420 below. This preserves playback but is
+// not HDR tone mapping: HDR transfer/color metadata is not transformed.
+const highBitDepthYuv420: Record<number, { depth: 10 | 12; littleEndian: boolean }> = {
+  61: { depth: 10, littleEndian: false },
+  62: { depth: 10, littleEndian: true },
+  122: { depth: 12, littleEndian: false },
+  123: { depth: 12, littleEndian: true },
+};
+
 /**
  * FFmpeg frames commonly have aligned strides and padded plane offsets (for
  * example a 360px Theora frame can reserve 384 luma rows). Although those
@@ -157,7 +167,11 @@ function frameToVideoFrame(libav: any, frame: any) {
  * of transferred padded I420 buffers. Copy each visible row into a compact
  * buffer so the VideoFrame layout is unambiguous.
  */
-function packVideoPlanes(frame: any, format: VideoPixelFormat) {
+function packVideoPlanes(
+  frame: any,
+  format: VideoPixelFormat,
+  highBitDepth?: { depth: 10 | 12; littleEndian: boolean },
+) {
   const chromaWidth = Math.ceil(frame.width / 2);
   const chromaHeight = Math.ceil(frame.height / 2);
   const planes: Array<{ width: number; height: number; bytesPerPixel: number }> =
@@ -201,7 +215,17 @@ function packVideoPlanes(frame: any, format: VideoPixelFormat) {
     layout.push({ offset: outputOffset, stride: rowBytes });
     for (let row = 0; row < plane.height; row++) {
       const start = input.offset + row * input.stride;
-      data.set(source.subarray(start, start + rowBytes), outputOffset + row * rowBytes);
+      if (!highBitDepth) {
+        data.set(source.subarray(start, start + rowBytes), outputOffset + row * rowBytes);
+        continue;
+      }
+      for (let column = 0; column < plane.width; column++) {
+        const offset = start + column * 2;
+        const sample = highBitDepth.littleEndian
+          ? source[offset] | (source[offset + 1] << 8)
+          : (source[offset] << 8) | source[offset + 1];
+        data[outputOffset + row * rowBytes + column] = sample >> (highBitDepth.depth - 8);
+      }
     }
     outputOffset += rowBytes * plane.height;
   }
@@ -258,6 +282,7 @@ async function open(
   softwareDecoderBase?: string,
   selectedAudioTrack?: number,
   startTime = 0,
+  forceSoftwareDecode = false,
 ) {
   let libav: any;
   let formatContext = 0;
@@ -267,8 +292,10 @@ async function open(
   const software: SoftwareDecoder[] = [];
   try {
     credits = 32;
-    const demuxRuntime = await loadDemuxRuntime(libavBase);
-    libav = await demuxRuntime.LibAV.LibAV({ noworker: true });
+    const demuxRuntime = await loadDemuxRuntime(libavBase, softwareDecoderBase);
+    // The runtime is already inside this worker. Avoid nested pthread workers;
+    // the player ships only the matching non-threaded WASM asset.
+    libav = await demuxRuntime.LibAV.LibAV({ noworker: true, nothreads: true });
     fileName = `input-${generation}`;
     await openInput(libav, src, fileName);
     [formatContext, streams] = await libav.ff_init_demuxer_file(fileName);
@@ -289,7 +316,7 @@ async function open(
         label: `${kind} ${stream.index}`,
         language: '',
         config,
-        decoder: (await supportsWebCodecs(kind, config)) ? 'webcodecs' : 'libav',
+        decoder: !forceSoftwareDecode && (await supportsWebCodecs(kind, config)) ? 'webcodecs' : 'libav',
       });
     }
     if (!descriptors.length) throw new Error('No audio or video streams found');
@@ -305,12 +332,14 @@ async function open(
         `WebCodecs does not support ${unsupported.map((stream) => stream.codec).join(', ')} and no software decoder variant was configured`,
       );
     if (unsupported.length) {
-      const decoderLibav = await loadSoftwareDecoder(softwareDecoderBase!);
+      // The configured player runtime already provides avformat and avcodec,
+      // so packets stay within one libav.js/WASM instance.
+      const decoderLibav = libav;
       for (const descriptor of unsupported) {
         const stream = streams[descriptor.index];
         const codecpar = stream.codecpar ? await libav.ff_copyout_codecpar(stream.codecpar) : stream;
-        // Codec IDs are stable FFmpeg identifiers. Using the numeric ID lets
-        // FFmpeg select the enabled decoder (notably libopus for Opus).
+        // Codec IDs are stable FFmpeg identifiers, so FFmpeg selects the
+        // decoder enabled in the player build directly.
         const [, context, decoderPacket, frame] = await decoderLibav.ff_init_decoder(codecpar.codec_id, {
           codecpar,
         });
@@ -385,6 +414,7 @@ scope.onmessage = ({ data }: MessageEvent<WorkerRequest>) => {
       data.softwareDecoderBase,
       data.selectedAudioTrack,
       data.startTime,
+      data.forceSoftwareDecode,
     );
   }
   if (data.type === 'close') {

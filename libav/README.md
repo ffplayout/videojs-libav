@@ -1,21 +1,25 @@
 # Patent-Free Decoder Variant
 
 This is the reproducible `libav.js` configuration for the optional software
-decoder used by the demo. It contains only codecs selected for their
-patent-free status: VP8, VP9, AV1, Theora, Vorbis, Opus, FLAC, and PCM.
+all-in-one player used by the demo. It contains only codecs selected for their
+patent-free status: VP9, AV1 (via libaom), FLAC, and PCM. The same runtime demuxes
+Matroska, MOV/MP4, Ogg, FLV, and AVI; WebCodecs remains preferred for streams
+the browser supports.
 
-It intentionally excludes H.264/AVC, HEVC, AAC, MPEG audio, and their related
-codec parsers. The MP4 and Matroska demuxers remain so that patent-free streams
-in those containers can be read.
+It intentionally excludes H.264/AVC, HEVC, AAC, MPEG audio, Theora, Vorbis,
+VP8, and Opus. The selected container demuxers are included because this
+variant replaces the regular demux runtime when configured.
 
 The current build input is libav.js commit
-`fe0fb3e89a68637082f02e9cb75b725bb9d3a1ea` (FFmpeg 9.0). Build the variant
-from that pinned checkout:
+`c80e885c3461f7bb7ea565c9631b34243ae0dbf1` (release 6.10.9, FFmpeg 9.0).
+Use the reproducible build script:
 
 ```sh
-node configs/mkconfig.js patentfree-player "$(tr -d '\n ' < /path/to/libav/patentfree-player.config.json)"
-make build-patentfree-player
+./libav/build/build-patentfree-player.sh
 ```
+
+See [`build/README.md`](build/README.md) for prerequisites, the output
+directory, and the deliberate release-copy procedure.
 
 Copy the generated `libav-*-patentfree-player.mjs` and
 `libav-*-patentfree-player.wasm.wasm` assets into

@@ -1,5 +1,7 @@
 import { LibavVideoElement } from './libav-video.js';
 export { LibavVideoElement } from './libav-video.js';
+export { createLibavPlayer, LibavPlayer } from './player.js';
+export type { CreateLibavPlayerOptions, LibavPlayerMedia, LibavPlayerSource } from './player.js';
 
 /** Register once; import this module before creating the Video.js 10 player. */
 export function defineLibavVideoElement(tagName = LibavVideoElement.tagName) {

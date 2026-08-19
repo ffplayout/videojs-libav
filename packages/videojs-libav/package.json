@@ -38,18 +38,18 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsdown src/index.ts src/demux-worker.ts --format esm --dts",
+    "build": "tsdown src/index.ts src/player.ts src/demux-worker.ts --format esm --dts",
     "prepack": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@videojs/html": "^10.0.0-beta.27",
-    "@videojs/media": "^10.0.0-beta.27"
+    "@videojs/html": "^10.0.0-beta.28",
+    "@videojs/media": "^10.0.0-beta.28"
   },
   "devDependencies": {
     "tsdown": "^0.21.9",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.0"
   }
 }

@@ -23,11 +23,12 @@ This is an MVP targeting browsers with WebCodecs and AudioWorklet support.
 
 The native path supports MP4/H.264/AAC, MKV/H.264/AAC, and MKV/VP9/Opus when
 the browser accepts the corresponding WebCodecs configuration. The optional
-software path currently targets patent-free VP8, VP9, AV1, Theora, Vorbis,
-Opus, FLAC, and PCM. Subtitle tracks and adaptive/live protocols are not
-implemented yet. Seeking restarts the bounded pipeline and asks libav.js to
-seek from a preceding keyframe; when byte ranges are available, this requests
-only the corresponding source ranges rather than the entire file.
+all-in-one software path targets patent-free VP9, AV1, FLAC, and PCM. It also
+demuxes Matroska, MOV/MP4, Ogg, FLV, and AVI in the same WASM instance. Subtitle
+tracks and adaptive/live protocols are not implemented yet. Seeking restarts
+the bounded pipeline and asks libav.js to seek from a preceding keyframe; when
+byte ranges are available, this requests only the corresponding source ranges
+rather than the entire file.
 
 ## Video.js 10 integration
 
@@ -39,29 +40,34 @@ this package:
 videojs('video', { techOrder: ['html5', 'libav'] });
 ```
 
-Register the element once, then let the application select native playback
-first. If the native element reports `''` for `canPlayType`, render
-`<libav-video>` instead. Applications may also explicitly switch to the fallback
-after a native playback error.
+For the usual application case, use the high-level helper. It registers the
+element, chooses native playback first, creates the Video.js player and default
+skin, and configures the libav.js fallback when needed.
 
 ```ts
-import { defineLibavVideoElement, shouldUseLibavFallback } from 'videojs-libav';
+import '@videojs/html/video/skin.css';
+import { createLibavPlayer } from 'videojs-libav';
 
-defineLibavVideoElement();
+const assets = new URL('./', window.location.href);
+const player = createLibavPlayer({
+  target: '#player',
+  source: { src: '/movie.mkv', type: 'video/x-matroska' },
+  softwareDecoderBase: new URL('libav-patentfree/', assets).href,
+});
 
-const source = { src: '/movie.mkv', type: 'video/x-matroska' };
-const media = shouldUseLibavFallback(source) ? document.createElement('libav-video') : document.createElement('video');
-
-if (media.tagName === 'LIBAV-VIDEO') {
-  // Directory containing the libav.js ESM loader and WASM files.
-  media.libavBase = new URL('/assets/libav/', window.location.origin).href;
-  // Optional directory containing libav-patentfree-player.mjs and its WASM.
-  // It is used only for streams WebCodecs rejects.
-  media.softwareDecoderBase = new URL('/assets/libav-patentfree/', window.location.origin).href;
-}
-
-media.src = source.src;
+// Switch sources later if needed.
+player.setSource({
+  source: { src: '/another-file.mkv', type: 'video/x-matroska' },
+  softwareDecoderBase: new URL('libav-patentfree/', assets).href,
+});
 ```
+
+`player.media` exposes the underlying native `<video>` or `<libav-video>`
+element; `player.usesLibav` reports the selected route. Call `player.destroy()`
+when the target is removed.
+
+For custom player markup, import `defineLibavVideoElement` and
+`shouldUseLibavFallback` directly. They remain part of the public API.
 
 `libav-video` implements the media-element surface required by controls:
 `play()`, `pause()`, `src`, `currentTime`, `duration`, `volume`, `muted`, and
@@ -85,19 +91,27 @@ from causing unbounded packet or frame accumulation.
 
 ## libav.js assets
 
-The package intentionally does not publish the approximately 15 MB
-`@libav.js/variant-webcodecs` distribution. Applications must host a compatible
-libav.js build and set `libavBase` to its directory. If `libavBase` is omitted,
-the worker resolves libav.js files relative to `demux-worker.mjs`.
+The package intentionally does not publish libav.js runtime assets. The caller
+chooses one of two routes:
 
-The host needs to make the libav.js ESM loader, its selected WASM target, and
-`libavjs-webcodecs-bridge.mjs` available. The worker imports these assets at
-runtime rather than through the bundler. The Vite demo in this repository shows
-one integration that copies them to `/libav/` and sets `libavBase` automatically.
+- Set only `libavBase` to use the regular `@libav.js/variant-webcodecs` runtime.
+  This is the smallest route and uses WebCodecs only; unsupported codecs fail
+  rather than loading a software decoder.
+- Set `softwareDecoderBase` to use the all-in-one patent-free player runtime.
+  It demuxes and software-decodes in one WASM module while still preferring
+  WebCodecs for supported streams. If both options are set, this route wins.
 
-The optional software decoder uses a separately hosted, on-demand variant named
-`libav-patentfree-player.mjs`. Its reproducible config is in this repository's
-`libav/` directory. It deliberately excludes H.264, HEVC, AAC, and MPEG audio.
+If neither option is supplied, the worker resolves the regular WebCodecs assets
+relative to `demux-worker.mjs`.
+
+The host needs to make the selected loader, matching WASM target, and
+`libavjs-webcodecs-bridge.mjs` available in the chosen runtime directory. The
+worker imports them at runtime rather than through the bundler. The Vite demo
+shows both runtime directories, but selects the all-in-one player by default.
+
+The optional all-in-one runtime is named `libav-patentfree-player.mjs`. Its
+reproducible config is in this repository's `libav/` directory. It deliberately
+excludes H.264, HEVC, AAC, MPEG audio, Theora, Vorbis, VP8, and Opus.
 Distributing a custom libav.js build requires fulfilling its FFmpeg/libav.js
 source-distribution obligations.
 

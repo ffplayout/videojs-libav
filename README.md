@@ -27,14 +27,17 @@ npm install
 npm run dev
 ```
 
-Open the URL printed by Vite. The demo starts with a Theora/Vorbis Matroska
-fixture, so libav.js must demux it and the patent-free software variant must
-decode both streams. The fixture picker also includes:
+Open the URL printed by Vite. The demo starts with a VP9/FLAC Matroska fixture,
+so the all-in-one patent-free variant demuxes and software-decodes both
+streams. The fixture picker also includes:
 
-- Theora/Vorbis Matroska with two audio tracks, including an audio-track picker.
-- Theora/FLAC Matroska.
-- The original ten-second H.264/Opus A/V-sync fixture, which demonstrates the
-  libav.js demux + WebCodecs-preferred path.
+- VP9 Profile 2 with 10-bit YUV420 video and FLAC audio.
+- AV1 Main 10-bit and AV1 Professional 12-bit YUV420 fixtures.
+- VP9 10-bit with two separately labelled FLAC tracks and an audio-track picker.
+- H.264/AAC and VP8/MP3 Matroska fixtures for the browser WebCodecs path.
+- VP9/PCM, which validates the bundled signed-16-bit PCM software decoder.
+- MOV, FLV, AVI, and Ogg fixtures with distinct FFmpeg test patterns or an
+  audio-only sine wave, covering every bundled container demuxer.
 
 All fixtures are generated from FFmpeg's `avsynctest` source and live in
 [`public/media`](public/media). You can select another local media file with the
@@ -43,8 +46,9 @@ file picker.
 Vite serves the libav.js loader and WASM files from `/libav/` during development
 and copies them to `dist/libav/` for production. The demo sets the package's
 `libavBase` property to that local directory. The optional local
-`/libav-patentfree/` variant contains VP8, VP9, AV1, Theora, Vorbis, Opus,
-FLAC, and PCM decoders; it loads only when WebCodecs rejects a stream. Its
+`/libav-patentfree/` variant contains VP9, AV1, FLAC, and PCM decoders; it can
+also replace the normal demux runtime so one WASM module handles the entire
+fallback route. Its
 reproducible configuration and update procedure are documented in
 [`libav/`](libav). The deployed patent-free runtime directory also contains its
 [LGPL notice, build inputs, and pinned upstream source links](public/libav-patentfree/NOTICE.md).

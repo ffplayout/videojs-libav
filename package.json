@@ -3,27 +3,27 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run sync:libav && vite",
+    "dev": "npm run sync:libav && npm run build:libav && vite",
     "build": "npm run sync:libav && npm run build:libav && vite build",
     "preview": "vite preview",
     "build:libav": "npm --prefix packages/videojs-libav run build",
     "sync:libav": "node scripts/sync-libav-assets.mjs",
     "test": "npm --prefix packages/videojs-libav test",
-    "typecheck": "tsc --noEmit && npm --prefix packages/videojs-libav run typecheck",
+    "typecheck": "npm run build:libav && tsc --noEmit && npm --prefix packages/videojs-libav run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@libav.js/variant-webcodecs": "^6.9.8",
-    "@videojs/html": "^10.0.0-beta.27",
-    "@videojs/media": "^10.0.0-beta.27",
+    "@libav.js/variant-webcodecs": "^6.10.9",
+    "@videojs/html": "^10.0.0-beta.28",
+    "@videojs/media": "^10.0.0-beta.28",
     "libavjs-webcodecs-bridge": "^0.3.2",
     "videojs-libav": "file:./packages/videojs-libav"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "prettier": "3.9.6",
-    "typescript": "^5.9.3",
-    "vite": "^7.1.7"
+    "typescript": "^6.0.3",
+    "vite": "^8.2.1"
   }
 }

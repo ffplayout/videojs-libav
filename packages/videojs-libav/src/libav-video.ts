@@ -64,6 +64,7 @@ export class LibavVideoElement extends MediaAttachMixin(HTMLElement) {
   #source = '';
   #libavBase?: string;
   #softwareDecoderBase?: string;
+  #forceSoftwareDecode = false;
   #messageChain = Promise.resolve();
   #audioTrack = 0;
   #audioTracks = new LibavAudioTrackList();
@@ -99,6 +100,13 @@ export class LibavVideoElement extends MediaAttachMixin(HTMLElement) {
   }
   set softwareDecoderBase(value: string | undefined) {
     this.#softwareDecoderBase = value || undefined;
+  }
+  /** Force the optional libav.js decoder instead of WebCodecs (demo/testing). */
+  get forceSoftwareDecode() {
+    return this.#forceSoftwareDecode;
+  }
+  set forceSoftwareDecode(value: boolean) {
+    this.#forceSoftwareDecode = Boolean(value);
   }
   /**
    * The fallback renders to a canvas and has no browser remote-playback
@@ -208,6 +216,7 @@ export class LibavVideoElement extends MediaAttachMixin(HTMLElement) {
       softwareDecoderBase: this.#softwareDecoderBase,
       selectedAudioTrack: this.#audioTrack,
       startTime: this.#currentTime,
+      forceSoftwareDecode: this.#forceSoftwareDecode,
     });
     event(this, 'loadstart');
   }
@@ -360,6 +369,23 @@ export class LibavVideoElement extends MediaAttachMixin(HTMLElement) {
   }
   async #render() {
     if (!this.#playing) return;
+    // Audio-only sources intentionally have no canvas frames. Do not wait for
+    // (and then interpret the absence of) a video frame as end-of-stream: the
+    // AudioContext is the master clock in this case as well.
+    if (!this.#streams.some((stream) => stream.kind === 'video')) {
+      this.#currentTime = this.#mediaClock();
+      if (Number.isFinite(this.#duration) && this.#currentTime >= this.#duration) {
+        this.#currentTime = this.#duration;
+        this.#ended = true;
+        this.#playing = false;
+        event(this, 'timeupdate');
+        event(this, 'ended');
+        return;
+      }
+      event(this, 'timeupdate');
+      this.#renderId = requestAnimationFrame(() => void this.#render());
+      return;
+    }
     const frame = await this.#videoFrames.shift();
     if (frame) {
       if (!Number.isFinite(this.#baseTimestamp)) this.#baseTimestamp = frame.timestamp;

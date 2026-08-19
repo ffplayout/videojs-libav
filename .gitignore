@@ -3,6 +3,7 @@ dist/
 packages/videojs-libav/node_modules/
 packages/videojs-libav/dist/
 public/libav/
+libav/build/output/
 *.tsbuildinfo
 
 # Tool caches and test output

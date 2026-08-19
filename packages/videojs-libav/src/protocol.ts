@@ -19,6 +19,7 @@ export type WorkerRequest =
       softwareDecoderBase?: string;
       selectedAudioTrack?: number;
       startTime?: number;
+      forceSoftwareDecode?: boolean;
     }
   | { type: 'resume'; generation: number }
   | { type: 'close'; generation: number };
