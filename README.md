@@ -77,32 +77,19 @@ npm run preview
 Use a Chromium-family browser with `VideoDecoder`, `AudioDecoder`, and
 `AudioWorklet` support.
 
-## GitHub Pages
+## Demo and releases
 
-The [release and Pages workflow](.github/workflows/deploy-pages.yml) runs when
-a tag matching `v*` is pushed. It verifies the tag against the npm package
-version, creates a draft release, attaches the npm package, corresponding-
-source archive, runtime archive and SHA-256 manifest, publishes that release,
-and only then deploys `dist/` to GitHub Pages. It never deploys after an ordinary push. In
-the repository settings, set **Pages → Build and deployment → Source** to
-**GitHub Actions** once. The relative Vite base works for both a project URL such as
-`https://OWNER.github.io/REPOSITORY/` and local hosting.
+The published demo is available at
+<https://ffplayout.github.io/videojs-libav/>. Its footer links to the exact
+runtime source archive and checksum for the deployed release.
 
-To publish, first push a signed or reviewed tag whose contents include the
-runtime assets and source configuration, for example `v0.1.0` for package
-version `0.1.0`. The workflow handles the draft, release assets, publication and
-Pages deployment automatically. For an existing tag or draft, run the same
-workflow manually and enter the tag as `release_tag`. The source archive
-contains the exact libav.js, FFmpeg and libaom source inputs plus this project's
-configuration, build script, notices and runtime checksums.
+Maintainers publish a new version by pushing a tag that matches the package
+version, for example `v0.1.0` for version `0.1.0`. The release workflow creates
+the release assets and deploys the demo automatically; normal branch pushes do
+not change the public site.
 
-During the Pages deployment, the workflow writes release-specific metadata into
-the site. The demo footer therefore links directly to the exact corresponding-
-source archive and its SHA-256 companion file for the deployed release.
-
-The workflow follows GitHub's official Pages artifact/deployment model.
-[GitHub Pages custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
-documents the required repository setting and deployment permissions.
+One-time GitHub setup: choose **GitHub Actions** as the Pages source, and allow
+tags matching `v*` to deploy to the `github-pages` environment.
 
 ## Package
 
