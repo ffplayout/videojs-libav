@@ -51,7 +51,9 @@ also replace the normal demux runtime so one WASM module handles the entire
 fallback route. Its
 reproducible configuration and update procedure are documented in
 [`libav/`](libav). The deployed patent-free runtime directory also contains its
-[LGPL notice, build inputs, and pinned upstream source links](public/libav-patentfree/NOTICE.md).
+[LGPL notice and build inputs](public/libav-patentfree/NOTICE.md). Every
+published GitHub release attaches the matching corresponding-source archive and
+its SHA-256 checksum.
 
 ## Large-file hosting
 
@@ -77,12 +79,25 @@ Use a Chromium-family browser with `VideoDecoder`, `AudioDecoder`, and
 
 ## GitHub Pages
 
-The included [deployment workflow](.github/workflows/deploy-pages.yml) builds
-the Vite site and publishes `dist/` through GitHub Pages after a push to `main`
-(or when manually dispatched). In the repository settings, set **Pages → Build
-and deployment → Source** to **GitHub Actions** once. The relative Vite base
-works for both a project URL such as
+The [release-preparation workflow](.github/workflows/prepare-release.yml)
+creates the npm package, corresponding-source archive and SHA-256 manifest for
+an existing **draft** GitHub Release. After reviewing its assets, publish that
+draft; the [Pages workflow](.github/workflows/deploy-pages.yml) then verifies
+the tag and deploys `dist/`. It never deploys after an ordinary push. In the
+repository settings, set **Pages → Build and deployment → Source** to
+**GitHub Actions** once. The relative Vite base works for both a project URL such as
 `https://OWNER.github.io/REPOSITORY/` and local hosting.
+
+To publish, first push a signed or reviewed tag whose contents include the
+runtime assets and source configuration. Create a **draft** GitHub Release from
+that tag, run **Prepare draft release artifacts** with the tag as input, inspect
+the uploaded files and only then publish the draft. The source archive contains
+the exact libav.js, FFmpeg and libaom source inputs plus this project's
+configuration, build script, notices and runtime checksums.
+
+During the Pages deployment, the workflow writes release-specific metadata into
+the site. The demo footer therefore links directly to the exact corresponding-
+source archive and its SHA-256 companion file for the deployed release.
 
 The workflow follows GitHub's official Pages artifact/deployment model.
 [GitHub Pages custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)

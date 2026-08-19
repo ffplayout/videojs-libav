@@ -25,9 +25,16 @@ Copy the generated `libav-*-patentfree-player.mjs` and
 `libav-*-patentfree-player.wasm.wasm` assets into
 `public/libav-patentfree/`. The generated output includes LGPL-licensed FFmpeg
 code; distributing it requires preserving its license notices and making the
-corresponding source available. This repository publishes pinned source links,
-configuration, checksums, and an LGPL notice alongside the assets in
-`public/libav-patentfree/`. The TypeScript package itself remains MIT.
+corresponding source available. Do not rely on upstream URLs alone for a public
+release. The release workflow creates a versioned corresponding-source archive
+containing the exact libav.js, FFmpeg and libaom sources as well as this
+configuration, build script, notices and checksums. The TypeScript package
+itself remains MIT.
+
+For public distribution, create the GitHub Release as a draft, run **Prepare
+draft release artifacts** for its tag, inspect the generated archive and
+checksums, then publish the draft. Publishing is the only event that deploys
+the GitHub Pages demo.
 
 For updates, pin a new upstream commit deliberately, review the generated
 configuration and license notices, rerun playback tests, then update this

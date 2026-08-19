@@ -11,8 +11,17 @@ later. A copy of LGPL-2.1 is provided at
 libaom is licensed under BSD-2-Clause. Its license text is provided at
 [`licenses/libaom-BSD-2-Clause.txt`](licenses/libaom-BSD-2-Clause.txt).
 
-Corresponding source and build inputs are available at these pinned upstream
-locations:
+`libavjs-webcodecs-bridge.mjs` is separately licensed under ISC; its required
+copyright and permission notice is preserved in that file's header.
+
+Before publication, the matching GitHub Release draft receives a versioned
+`libav-*-patentfree-player-corresponding-source-<tag>.tar.xz` archive and its
+SHA-256 checksum. That archive is the corresponding-source offer for these
+runtime files and contains the exact upstream source trees, project build input,
+build script, notices and runtime checksums. Keep each published release and
+its assets available for at least three years.
+
+The archive uses these pinned upstream inputs:
 
 - <https://github.com/Yahweasel/libav.js/tree/c80e885c3461f7bb7ea565c9631b34243ae0dbf1>
 - <https://ffmpeg.org/releases/ffmpeg-9.0.tar.xz>

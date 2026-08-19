@@ -7,6 +7,20 @@ import './style.css';
 const appBase = new URL(import.meta.env.BASE_URL, window.location.href);
 const assetUrl = (path: string) => new URL(path, appBase).href;
 const fixtureBase = assetUrl('media/');
+const releaseSourceLink = document.querySelector<HTMLAnchorElement>('#release-source-link');
+
+void fetch(assetUrl('libav-patentfree/release-source.json'))
+  .then(async (response) => {
+    if (!response.ok) return;
+    const release = (await response.json()) as { sourceUrl?: string; checksumUrl?: string; tag?: string };
+    if (!releaseSourceLink || !release.sourceUrl || !release.checksumUrl) return;
+    releaseSourceLink.href = release.sourceUrl;
+    releaseSourceLink.textContent = `Download corresponding source for ${release.tag ?? 'this release'} (SHA-256 available).`;
+    releaseSourceLink.title = `Checksum: ${release.checksumUrl}`;
+  })
+  .catch(() => {
+    // Local development has no published release metadata; retain the fallback link.
+  });
 const fixtures: DemoSource[] = [
   {
     src: `${fixtureBase}vp9-8bit-flac.mkv`,

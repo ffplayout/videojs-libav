@@ -13,6 +13,8 @@ coverage/
 
 # Logs and local package archives
 *.log
+release/
+public/libav-patentfree/release-source.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

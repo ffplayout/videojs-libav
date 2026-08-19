@@ -1,9 +1,8 @@
-name: Deploy demo to GitHub Pages
+name: Deploy released demo to GitHub Pages
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -20,6 +19,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
@@ -27,6 +28,15 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Verify runtime checksums
+        run: sha256sum --check SOURCES.sha256
+        working-directory: public/libav-patentfree
+      - name: Verify project
+        run: npm run typecheck && npm test && npm run format:check
+      - name: Add direct corresponding-source link
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: node scripts/write-release-source-link.mjs "$GITHUB_REPOSITORY" "$RELEASE_TAG"
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Build demo
