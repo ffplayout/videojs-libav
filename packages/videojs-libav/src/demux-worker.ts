@@ -347,12 +347,26 @@ async function open(
         software.push({ libav: decoderLibav, context, packet: decoderPacket, frame, stream, descriptor });
       }
     }
-    const duration = Math.max(
+    // Stream durations are optional. Matroska and FLV, for example, commonly
+    // expose AV_NOPTS_VALUE on every stream even though the container has a
+    // valid overall duration. AVFormatContext uses microseconds (AV_TIME_BASE)
+    // and is therefore the authoritative value for the media element API.
+    const formatDuration =
+      libav.i64tof64(
+        await libav.AVFormatContext_duration(formatContext),
+        await libav.AVFormatContext_durationhi(formatContext),
+      ) / 1_000_000;
+    const streamDuration = Math.max(
       0,
-      ...selected.map(
-        (stream: any) =>
-          (Number(stream.duration || 0) * Number(stream.time_base_num || 0)) / Number(stream.time_base_den || 1),
-      ),
+      ...selected.map((stream: any) => {
+        const value =
+          (Number(stream.duration || 0) * Number(stream.time_base_num || 0)) / Number(stream.time_base_den || 1);
+        return Number.isFinite(value) && value > 0 ? value : 0;
+      }),
+    );
+    const duration = Math.max(
+      Number.isFinite(formatDuration) && formatDuration > 0 ? formatDuration : 0,
+      streamDuration,
     );
     emit({ type: 'metadata', generation, duration, streams: descriptors });
     if (startTime > 0) {
