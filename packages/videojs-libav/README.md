@@ -109,6 +109,11 @@ The host needs to make the selected loader, matching WASM target, and
 worker imports them at runtime rather than through the bundler. The Vite demo
 shows both runtime directories, but selects the all-in-one player by default.
 
+For release users, download the version-matched `videojs-libav-runtime-<tag>.tar.xz`
+asset from GitHub Releases. It contains both runtime directories, their notices,
+licenses, and an internal `SHA256SUMS` manifest. The npm package remains free of
+WASM binaries so applications can choose their own libav.js runtime policy.
+
 The optional all-in-one runtime is named `libav-patentfree-player.mjs`. Its
 reproducible config is in this repository's `libav/` directory. It deliberately
 excludes H.264, HEVC, AAC, MPEG audio, Theora, Vorbis, VP8, and Opus.

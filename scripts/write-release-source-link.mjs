@@ -6,7 +6,7 @@ if (!repository || !tag) {
   throw new Error('Usage: node scripts/write-release-source-link.mjs <owner/repository> <release-tag>');
 }
 
-const sourceAsset = `libav-6.10.9.0-patentfree-player-corresponding-source-${tag}.tar.xz`;
+const sourceAsset = `videojs-libav-corresponding-source-${tag}.tar.xz`;
 const baseUrl = `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}`;
 const destination = resolve('public/libav-patentfree/release-source.json');
 

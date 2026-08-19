@@ -15,11 +15,12 @@ libaom is licensed under BSD-2-Clause. Its license text is provided at
 copyright and permission notice is preserved in that file's header.
 
 Before publication, the matching GitHub Release draft receives a versioned
-`libav-*-patentfree-player-corresponding-source-<tag>.tar.xz` archive and its
-SHA-256 checksum. That archive is the corresponding-source offer for these
-runtime files and contains the exact upstream source trees, project build input,
-build script, notices and runtime checksums. Keep each published release and
-its assets available for at least three years.
+`videojs-libav-runtime-<tag>.tar.xz` binary runtime archive and a
+`videojs-libav-corresponding-source-<tag>.tar.xz` source archive, each with a
+SHA-256 checksum. The source archive is the corresponding-source offer for both
+runtime directories; it contains the exact upstream source trees, project build
+input, build script, notices and runtime checksums. Keep each published release
+and its assets available for at least three years.
 
 The archive uses these pinned upstream inputs:
 

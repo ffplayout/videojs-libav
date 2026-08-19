@@ -79,20 +79,21 @@ Use a Chromium-family browser with `VideoDecoder`, `AudioDecoder`, and
 
 ## GitHub Pages
 
-The [release-preparation workflow](.github/workflows/prepare-release.yml)
-creates the npm package, corresponding-source archive and SHA-256 manifest for
-an existing **draft** GitHub Release. After reviewing its assets, publish that
-draft; the [Pages workflow](.github/workflows/deploy-pages.yml) then verifies
-the tag and deploys `dist/`. It never deploys after an ordinary push. In the
-repository settings, set **Pages → Build and deployment → Source** to
+The [release and Pages workflow](.github/workflows/deploy-pages.yml) runs when
+a tag matching `v*` is pushed. It verifies the tag against the npm package
+version, creates a draft release, attaches the npm package, corresponding-
+source archive, runtime archive and SHA-256 manifest, publishes that release,
+and only then deploys `dist/` to GitHub Pages. It never deploys after an ordinary push. In
+the repository settings, set **Pages → Build and deployment → Source** to
 **GitHub Actions** once. The relative Vite base works for both a project URL such as
 `https://OWNER.github.io/REPOSITORY/` and local hosting.
 
 To publish, first push a signed or reviewed tag whose contents include the
-runtime assets and source configuration. Create a **draft** GitHub Release from
-that tag, run **Prepare draft release artifacts** with the tag as input, inspect
-the uploaded files and only then publish the draft. The source archive contains
-the exact libav.js, FFmpeg and libaom source inputs plus this project's
+runtime assets and source configuration, for example `v0.1.0` for package
+version `0.1.0`. The workflow handles the draft, release assets, publication and
+Pages deployment automatically. For an existing tag or draft, run the same
+workflow manually and enter the tag as `release_tag`. The source archive
+contains the exact libav.js, FFmpeg and libaom source inputs plus this project's
 configuration, build script, notices and runtime checksums.
 
 During the Pages deployment, the workflow writes release-specific metadata into

@@ -31,10 +31,10 @@ containing the exact libav.js, FFmpeg and libaom sources as well as this
 configuration, build script, notices and checksums. The TypeScript package
 itself remains MIT.
 
-For public distribution, create the GitHub Release as a draft, run **Prepare
-draft release artifacts** for its tag, inspect the generated archive and
-checksums, then publish the draft. Publishing is the only event that deploys
-the GitHub Pages demo.
+For public distribution, push a version tag matching the npm package version,
+for example `v0.1.0` for version `0.1.0`. The release workflow creates a draft,
+attaches and verifies the generated artifacts, publishes the completed release,
+then deploys GitHub Pages. A normal branch push never deploys the demo.
 
 For updates, pin a new upstream commit deliberately, review the generated
 configuration and license notices, rerun playback tests, then update this
